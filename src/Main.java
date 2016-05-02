@@ -1,26 +1,49 @@
 import java.applet.*;
-import java.awt.*;
 
 
-import gl4java.GLContext;
 import gl4java.GLFunc;
 import gl4java.GLUFunc;
-import gl4java.awt.GLCanvas;
 import gl4java.awt.GLAnimCanvas;
 
-// Подключаем стандартные библиотеки Java
-import java.awt.*;
+
 import java.awt.event.*;
-import java.lang.Math;
-import java.applet.*;
-
-import java.lang.Math;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
-class MainGL extends GLAnimCanvas
+class MainGL extends GLAnimCanvas implements MouseMotionListener, MouseWheelListener
 {
-    public MainGL(int w, int h) {
+    private DiskManager diskManager = new DiskManager();
+    private int numberOfDisks;
+    private float alpha = 0, height = 50, dist = 50;
+    private int Xpos = -1;
+    private int Ypos = -1;
+
+    public MainGL(int w, int h, int numberOfDisks) {
         super(w, h);
+        this.numberOfDisks = numberOfDisks;
+    }
+
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+        System.out.println("wheeeeel");
+    }
+
+    @Override
+    public void mouseMoved(MouseEvent e) {
+        if (Xpos != -1) {
+            this.moveCamera(e.getX() - Xpos, e.getY() - Ypos);
+        }
+        Xpos = e.getX();
+        Ypos = e.getY();
+        e.consume();
+        System.out.println("moved");
+        display();
+    }
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+
     }
 
     public void preInit() {
@@ -28,6 +51,8 @@ class MainGL extends GLAnimCanvas
     }
 
     public void init() {
+        addMouseMotionListener(this);
+
 //        float mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 //        float mat_shininess[] = { 50.0f };
         gl.glMatrixMode(GL_PROJECTION);
@@ -56,9 +81,24 @@ class MainGL extends GLAnimCanvas
 //        gl.glLightfv(gl.GL_LIGHT0, gl.GL_AMBIENT, amb);
 //
 //        gl.glEnable(GL_LIGHT0);
+
+        diskManager.createDisks(numberOfDisks, 1.5f, gl);
+        diskManager.createSticks(gl);
     }
 
-    private void setCamera(GLFunc gl, GLUFunc glu, float distance) {
+    public void restart() {
+        this.numberOfDisks += 1;
+        diskManager = new DiskManager();
+        diskManager.createDisks(numberOfDisks, 1.5f, gl);
+        diskManager.createSticks(gl);
+    }
+
+    public void moveCamera(float side, float up) {
+        this.alpha += side;
+        this.height += up;
+    }
+
+    private void setCamera(GLFunc gl, GLUFunc glu) {
         // Change to projection matrix.
         gl.glMatrixMode(gl.GL_PROJECTION);
         gl.glLoadIdentity();
@@ -66,7 +106,7 @@ class MainGL extends GLAnimCanvas
         // Perspective.
         float widthHeightRatio = (float) getWidth() / (float) getHeight();
         glu.gluPerspective(45, widthHeightRatio, 1, 1000);
-        glu.gluLookAt(20, 20, distance, 0, 0, 0, 0, 0, 1);
+        glu.gluLookAt(dist * Math.sin(Math.toRadians(alpha)), dist * Math.cos(Math.toRadians(alpha)), height, 0, 0, 5, 0, 0, 1);
 
         // Change back to model view matrix.
         gl.glMatrixMode(gl.GL_MODELVIEW);
@@ -74,45 +114,35 @@ class MainGL extends GLAnimCanvas
     }
 
     public void display() {
-        System.out.println("display");
-        System.out.println(getFps());
-        float radius = 5.0f;
-
         if (!glj.gljMakeCurrent()) return;
-
-
 
         gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         gl.glBegin(gl.GL_LINES);
             gl.glColor3f(1.0f, 0.0f, 0.0f);
             gl.glVertex3f(0.0f, 0.0f, 0.0f);
-            gl.glVertex3f(5.0f, 0.0f, 0.0f);
+            gl.glVertex3f(20.0f, 0.0f, 0.0f);
 
             gl.glColor3f(0.0f, 1.0f, 0.0f);
             gl.glVertex3f(0.0f, 0.0f, 0.0f);
-            gl.glVertex3f(0.0f, 5.0f, 0.0f);
+            gl.glVertex3f(0.0f, 20.0f, 0.0f);
 
             gl.glColor3f(0.0f, 0.0f, 1.0f);
             gl.glVertex3f(0.0f, 0.0f, 0.0f);
-            gl.glVertex3f(0.0f, 0.0f, 5.0f);
+            gl.glVertex3f(0.0f, 0.0f, 20.0f);
         gl.glEnd();
 
 
-        System.out.println("start draw");
+        this.diskManager.draw();
 
-
-        DiskManager diskManager = new DiskManager();
-        diskManager.createDisk(10.0f, 0, 1, 0, gl);
-        diskManager.createDisk(radius, 0, 1, 3, gl);
-        diskManager.createDisk(1.0f, 0, 1, 6, gl);
-        diskManager.draw();
-
-
-        setCamera(gl, glu, 20);
-//        gl.glTranslatef(0,1,0);
+        setCamera(gl, glu);
 
         glj.gljSwap();
+    }
+
+
+    public boolean diskMove(int diskNumber, int stickNumber, MainGL _this) {
+        return this.diskManager.moveDiskToStick(diskNumber, stickNumber, gl, this);
     }
 }
 
@@ -121,20 +151,36 @@ public class Main extends Applet
 {
     private MainGL glmain = null;
 
+    private Timer timer = new Timer();
+    private RedrawTask redrawTask = new RedrawTask();
+
+    private int numberOfDisks = 2;
+
     public void init() {
         setLayout(null);
         setSize(640,480);
 
-        glmain = new MainGL(640, 480);
+        glmain = new MainGL(640, 480, numberOfDisks);
 
         glmain.setBounds(0,0,640,480);
 
         add(glmain);
+
     }
-    
+
+    private void solve(int number, int from, int to, int buf) {
+        if (number != 0) {
+            solve(number - 1, from, buf, to);
+            System.out.println("Снимаем " + number + "-й диск с " + from + "-го стержня и одеваем его на " + to + "-й");
+            glmain.diskMove(number - 1, to, glmain);
+            solve(number - 1, buf, to, from);
+        }
+    }
+
     public void start()
     {
         glmain.start();
+        timer.schedule(redrawTask, 1000, 50);
     }
 
     public void stop()
@@ -146,31 +192,15 @@ public class Main extends Applet
         glmain.stop();
         glmain.cvsDispose();
     }
+
+    class RedrawTask extends TimerTask {
+        @Override
+        public void run() {
+            solve(numberOfDisks++, 0, 2, 1);
+            glmain.repaint();
+            glmain.restart();
+//            cancel();
+        }
+    }
+
 }
-
-
-
-//public class Main extends Applet{
-//    private void solve(int number, int from, int to, int buf, Graphics g) {
-//        if (number != 0) {
-//            solve(number - 1, from, buf, to, g);
-//            System.out.println("Снимаем " + number + "-й диск с " + from + "-го стержня и одеваем его на " + to + "-й");
-//            solve(number - 1, buf, to, from, g);
-//        }
-//    }
-//
-//    private void drawDisk(int size, int pos) {
-//
-//    }
-//
-//    public void paint(Graphics g) {
-//        g.drawRect(10, 5, 40, 10);
-//        g.drawRect(50, 50, 10, 50);
-//        solve(3, 1, 3 ,2, g);
-//    }
-//
-//    public void update(Graphics g) {
-//
-//    }
-//
-//}
