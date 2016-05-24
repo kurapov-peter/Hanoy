@@ -1,6 +1,8 @@
 import gl4java.GLFunc;
 
 public class Disk {
+
+
     private float radius;
     private float height = 2.0f;
     private GLFunc gl;
@@ -46,6 +48,9 @@ public class Disk {
         return z;
     }
 
+    public float getRadius() {
+        return radius;
+    }
 
     public void toStick(int stickNumber) { this.onStick = stickNumber; }
     public int getStick() { return this.onStick; }

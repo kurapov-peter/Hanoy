@@ -6,16 +6,18 @@ import gl4java.GLUFunc;
 import gl4java.awt.GLAnimCanvas;
 
 
+import javax.swing.event.MouseInputListener;
 import java.awt.event.*;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.regex.Matcher;
 
 
-class MainGL extends GLAnimCanvas implements MouseMotionListener, MouseWheelListener
+class MainGL extends GLAnimCanvas implements  MouseInputListener, MouseWheelListener
 {
     private DiskManager diskManager = new DiskManager();
     private int numberOfDisks;
-    private float alpha = 0, height = 50, dist = 50;
+    private float alpha = 0, betta = 50, dist = 50;
     private int Xpos = -1;
     private int Ypos = -1;
 
@@ -25,25 +27,19 @@ class MainGL extends GLAnimCanvas implements MouseMotionListener, MouseWheelList
     }
 
     @Override
-    public void mouseWheelMoved(MouseWheelEvent e) {
-        System.out.println("wheeeeel");
+    public void mouseMoved(MouseEvent e) {
+        Xpos = -1;
     }
 
     @Override
-    public void mouseMoved(MouseEvent e) {
+    public void mouseDragged(MouseEvent e) {
         if (Xpos != -1) {
             this.moveCamera(e.getX() - Xpos, e.getY() - Ypos);
         }
         Xpos = e.getX();
         Ypos = e.getY();
         e.consume();
-        System.out.println("moved");
         display();
-    }
-
-    @Override
-    public void mouseDragged(MouseEvent e) {
-
     }
 
     public void preInit() {
@@ -52,6 +48,7 @@ class MainGL extends GLAnimCanvas implements MouseMotionListener, MouseWheelList
 
     public void init() {
         addMouseMotionListener(this);
+        addMouseWheelListener(this);
 
 //        float mat_specular[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 //        float mat_shininess[] = { 50.0f };
@@ -95,7 +92,13 @@ class MainGL extends GLAnimCanvas implements MouseMotionListener, MouseWheelList
 
     public void moveCamera(float side, float up) {
         this.alpha += side;
-        this.height += up;
+        this.betta += up;
+        if (betta > 80) {
+            betta = 80;
+        }
+        if (betta < -80 ) {
+            betta = -80;
+        }
     }
 
     private void setCamera(GLFunc gl, GLUFunc glu) {
@@ -106,7 +109,8 @@ class MainGL extends GLAnimCanvas implements MouseMotionListener, MouseWheelList
         // Perspective.
         float widthHeightRatio = (float) getWidth() / (float) getHeight();
         glu.gluPerspective(45, widthHeightRatio, 1, 1000);
-        glu.gluLookAt(dist * Math.sin(Math.toRadians(alpha)), dist * Math.cos(Math.toRadians(alpha)), height, 0, 0, 5, 0, 0, 1);
+        float dist1 = (float) (dist * Math.cos(Math.toRadians(betta)));
+        glu.gluLookAt(dist1 * Math.sin(Math.toRadians(alpha)), dist1 * Math.cos(Math.toRadians(alpha)), dist * Math.sin(Math.toRadians(betta)), 0, 0, 0, 0, 0, 1);
 
         // Change back to model view matrix.
         gl.glMatrixMode(gl.GL_MODELVIEW);
@@ -144,6 +148,11 @@ class MainGL extends GLAnimCanvas implements MouseMotionListener, MouseWheelList
     public boolean diskMove(int diskNumber, int stickNumber, MainGL _this) {
         return this.diskManager.moveDiskToStick(diskNumber, stickNumber, gl, this);
     }
+
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+        dist += e.getScrollAmount() * e.getWheelRotation();
+    }
 }
 
 
@@ -154,7 +163,7 @@ public class Main extends Applet
     private Timer timer = new Timer();
     private RedrawTask redrawTask = new RedrawTask();
 
-    private int numberOfDisks = 2;
+    private int numberOfDisks = 4;
 
     public void init() {
         setLayout(null);

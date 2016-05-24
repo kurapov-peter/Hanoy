@@ -28,6 +28,7 @@ public class DiskManager {
     public void createSticks(GLFunc gl) {
         stickList = new ArrayList<>();
         stickHeight = diskList.size() * 4;
+        float stickWidth = diskList.get(0).getRadius() * 2.1f + 20;
         // Sticks
         stickList.add(new Disk(.2f, 20, 0, 0, 0.5f, 0.5f, 0.5f, stickHeight, -1, gl));
         stickList.add(new Disk(.2f, 0, 0, 0, 0.5f, 0.5f, 0.5f, stickHeight, -1, gl));
@@ -68,7 +69,7 @@ public class DiskManager {
         }
         moveDisk(diskNumber, stickList.get(stickNumber).getX(), disk.getY(), disk.getZ());
 
-        //move side
+        //move down
         System.out.println("DOWN");
         float maxHeight = -2.0f;
         // max height on stick
